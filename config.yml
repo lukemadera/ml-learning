@@ -1,0 +1,8 @@
+web_server:
+  port: 8081
+  index: 
+    route: /
+    files: ml-learning/frontend
+  static:
+    route: /static
+    files: ml-learning/dist/frontend

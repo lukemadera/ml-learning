@@ -1,0 +1,10 @@
+- breakout
+    - check / copy over any other breakout specific model params
+    - training run tracking (want 80M steps, or 1600 runs at 50k steps each):
+        - 50k steps: 1.95, 6.0 (avg tot, max)
+        - 100k steps: 1.77, 7
+        - 200k steps: 1.69, 7
+        - 300k steps: 1.48, 7
+            - .. going much slower than the tensorflow 1.14 version? And / or not improving? Switch back to tensorflow and / or fix code / model (is something off?)
+            - try running on Dani or Eric's computer and see how much faster it runs.
+                - on my macbook pro for the pytorch version it takes about 0.02 sec / step, 1.76 min / 1000 batches, ~33 min for 20k batches (100k steps).
