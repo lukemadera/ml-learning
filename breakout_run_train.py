@@ -1,6 +1,7 @@
 import gym
 import logging
 import numpy as np
+import torch
 import time
 
 import breakout_ai_a2c as ai_a2c
@@ -35,7 +36,10 @@ def runTrain(gymId='BreakoutNoFrameskip-v4', numEnvs=16, seed=0, filePathBrain='
 
     numActions = env.action_space.n
 
-    agent = ai_a2c.A2C(numActions)
+    torchDevice = 'cpu'
+    if torch.cuda.is_available():
+        torchDevice = 'cuda'
+    agent = ai_a2c.A2C(numActions, device=torchDevice)
     if filePathBrain:
         agent.load(filePath=filePathBrain)
 

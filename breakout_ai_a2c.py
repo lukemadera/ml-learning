@@ -70,16 +70,17 @@ class A2C():
 
     def __init__(self, numActions, gamma=None, learningRate=None, maxGradNorm=0.5,
         entropyCoefficient=0.01, valueLossFactor=0.5, sharedModel=None,
-        sharedOptimizer=None):
+        sharedOptimizer=None, device='cpu'):
         self.gamma = gamma if gamma is not None else 0.99
         self.learningRate = learningRate if learningRate is not None else 0.0007
         self.maxGradNorm = maxGradNorm
         self.entropyCoefficient = entropyCoefficient
         self.valueLossFactor = valueLossFactor
-        self.model = ActorCritic(numActions)
+        self.model = ActorCritic(numActions).to(device=device)
         self.sharedModel = sharedModel
         self.optimizer = sharedOptimizer if sharedOptimizer is not None else \
             optim.Adam(self.model.parameters(), lr=self.learningRate)
+        self.device = device
         print ('A2C hyperparameters',
             'learningRate', self.learningRate,
             'gamma', self.gamma,
@@ -109,7 +110,7 @@ class A2C():
     #         self.model.load_state_dict(self.sharedModel.state_dict())
 
     def getValues(self, state):
-        stateTensor = torch.Tensor(state)
+        stateTensor = torch.tensor(state, dtype=torch.float32, device=self.device)
         return self.model.get_action_probs(stateTensor)
 
     def pickAction(self, bestAction, validActions=None, randomRatio=-1):
@@ -127,7 +128,7 @@ class A2C():
         return action
 
     def selectActions(self, states, validActions=None, randomRatio=-1):
-        statesTensor = torch.Tensor(states)
+        statesTensor = torch.tensor(states, dtype=torch.float32, device=self.device)
         actionProbs, stateValues = self.model.evaluate_actions(statesTensor)
 
         actions = []
@@ -139,7 +140,7 @@ class A2C():
 
     def selectAction(self, state, validActions=None, randomRatio=-1):
         # Need to add dimension to simulate stack of states, even though just have one.
-        stateTensor = torch.Tensor(state)
+        stateTensor = torch.tensor(state, dtype=torch.float32, device=self.device)
         actionProbs, stateValues = self.model.evaluate_actions(stateTensor)
 
         _, bestAction = actionProbs.max(maxIndex)
@@ -177,15 +178,15 @@ class A2C():
 
         R.reverse()
         # print ('rewards', rewards)
-        stateValuesActual = torch.FloatTensor(R).unsqueeze(1)
+        stateValuesActual = torch.tensor(R, dtype=torch.float32, device=self.device).unsqueeze(1)
         # print ('stateValuesActual', stateValuesActual)
         # print ('R', R)
         
         return stateValuesActual
 
     def learn(self, states, actions, rewards, dones, values=None):
-        statesTensor = torch.Tensor(states)
-        # s = torch.FloatTensor(states)
+        statesTensor = torch.tensor(states, dtype=torch.float32, device=self.device)
+        # s = torch.tensor(states, dtype=torch.float32, device=self.device)
         # Need to convert from array of tensors to tensor of tensors.
         # actionProbs, stateValuesEst = self.model.evaluate_actions(torch.cat(statesTensor, 0))
         actionProbs, stateValuesEst = self.model.evaluate_actions(statesTensor)
@@ -196,7 +197,7 @@ class A2C():
         # print ('actionProbs', actionProbs)
         # print ('actionLogProbs', actionLogProbs)
 
-        a = torch.LongTensor(actions).view(-1,1)
+        a = torch.tensor(actions, dtype=torch.int64, device=self.device).view(-1,1)
         chosenActionLogProbs = actionLogProbs.gather(1, a)
         # print ('chosenActionLogProbs', chosenActionLogProbs)
 
@@ -239,16 +240,16 @@ class A2C():
                 R = rewards[i] + self.gamma * R
                 RW[i] = R
                 ADV[i] = R - VF[i]
-            advantages = torch.from_numpy(ADV)
+            advantages = torch.from_numpy(ADV, device=self.device)
 
             # rewardsTensor = []
             # for reward in rewards:
-            #     print (reward, torch.Tensor([reward]))
-            #     rewardsTensor.append(torch.Tensor(reward))
-            rewardsTensor = list(map(lambda x: torch.Tensor([x]), rewards))
+            #     print (reward, torch.tensor([reward], device=self.device))
+            #     rewardsTensor.append(torch.tensor(reward, device=self.device))
+            rewardsTensor = list(map(lambda x: torch.tensor([x], device=self.device), rewards))
             rewardsTensor = torch.cat(rewardsTensor, 0)
             valueLoss = 0.5 * (stateValuesEst - rewardsTensor).pow(2).mean()
-            # valueLoss = 0.5 * (stateValuesEst - torch.from_numpy(RW)).pow(2).mean()
+            # valueLoss = 0.5 * (stateValuesEst - torch.from_numpy(RW, device=self.device)).pow(2).mean()
 
             actionOneHot = chosenActionLogProbs #Is this correct??
             negLogPolicy = -1 * actionLogProbs
