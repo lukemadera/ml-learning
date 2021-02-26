@@ -1,4 +1,4 @@
-aiohttp==3.3.1
+aiohttp==3.7.4
 dateparser==0.7.0
 numpy==1.17.2
 python-dateutil==2.6.1
